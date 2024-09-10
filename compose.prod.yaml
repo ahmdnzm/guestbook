@@ -20,14 +20,23 @@ services:
       - "--entrypoints.web.address=:80"
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--api.dashboard=true"  # Enables the Traefik dashboard
+      - "--api.insecure=false"  # Ensures the dashboard is not exposed publicly without security
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - letsencrypt:/letsencrypt
       - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=PathPrefix(`/traefik`)"  # Routes requests with the /traefik path
+      - "traefik.http.routers.traefik.entrypoints=websecure"  # Serves the dashboard over HTTPS
+      - "traefik.http.routers.traefik.service=api@internal"  # Uses Traefik's internal API for the dashboard
+      - "traefik.http.routers.traefik.middlewares=auth@file"  # Attaches the authentication middleware
+      - "traefik.http.middlewares.auth.basicauth.users=admin:$apr1$1255ra0O$nkklH41SOyOcYqPePrKBf."  # Replace with your generated credentials
   guestbook:
-    image: ghcr.io/dreamsofcode-io/guestbook:prod
+    image: ghcr.io/ahmdnzm/guestbook:prod
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.guestbook.rule=Host(`gb.ahmdnzm.com`)"
